@@ -13,6 +13,9 @@
 #define VC_EXTRALEAN            // 从 Windows 头中排除极少使用的资料
 #endif
 
+#define _INTSAFE_H_INCLUDED_
+#include <stdint.h>
+
 #include "targetver.h"
 
 #define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS      // 某些 CString 构造函数将是显式的
@@ -24,7 +27,7 @@
 #include <afxext.h>         // MFC 扩展
 
 
-
+#pragma warning(disable : 4996)
 
 
 #ifndef _AFX_NO_OLE_SUPPORT
