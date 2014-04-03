@@ -22,6 +22,7 @@ ipch/
 *.ilk
 *.tfw
 *.tif
+*.aps
 ImageX/ImageX_i.c
 ImageX/ImageX_i.h
 ImageX/ImageX_p.c
