@@ -19,6 +19,7 @@
 
 void log(const char* p);
 
+class session;
 
 struct task_struct 
 {
@@ -36,14 +37,18 @@ struct task_struct
 
 struct node_struct
 {
-	node_struct(std::string ip)
-		: ip_(ip)
+	node_struct(session* long_session, std::string ip)
+		: long_session_(long_session)
+		, ip_(ip)
 		, is_busy(false)
+		, is_checked(false)
 	{
 
 	}
+	session* long_session_;
 	std::string ip_;
 	bool is_busy;
+	bool is_checked;
 
 	bool operator==(const node_struct& node)
 	{
@@ -104,8 +109,8 @@ public:
 	friend class session;
 
 public:
-	node(boost::asio::io_service& io_service, unsigned short port, NodeType nt)
-		: nt_(nt)
+	node(boost::asio::io_service& io_service, unsigned short port)
+		: nt_(NT_NORMAL)
 		, ip_("")
 		, master_ip("")
 		, io_service_(io_service)
@@ -135,12 +140,17 @@ public:
 	}
 
 	void Start();
+	void Scan();
+	bool IsConnected();
 	bool IsMaster();
+	bool IsScanFinished();
+	std::vector<node_struct>& GetAvailList();
+	void AddTask(std::string task);
+	void Distribute(session* new_session, std::string ip);
 
 private:
 	bool Initialize();
 	void ParseProj();
-	void Distribute(session* new_session, std::string ip);
 	void ParseMetafile();
 	void RequestFiles();
 	void Work();

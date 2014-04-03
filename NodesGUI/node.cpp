@@ -44,10 +44,8 @@ bool node::Initialize()
 			}
 			else
 			{
-				std::cout<<"Confirm ip is"<<ip<<"?(Y/N)"<<"\n";
-				char yesno;
-				std::cin>>yesno;
-				if (yesno == 'y' || yesno == 'Y')
+				if (IDYES == AfxMessageBox(_T("È·ÈÏipÎª")+CString(ip.c_str())+_T("?"),
+					MB_YESNO))
 				{
 					ip_ = ip;
 					return true;
@@ -58,7 +56,7 @@ bool node::Initialize()
 	}
 	catch (std::exception& e)
 	{
-		log(e.what());
+		AfxMessageBox(CString(e.what()));
 		return false;
 	}
 	return false;
@@ -105,7 +103,7 @@ void node::Distribute(session* new_session, std::string ip)
 		log("Task list is empty");
 		new_session->send_msg(MT_FREE, "free");
 		auto ite = std::find(available_list.begin(), available_list.end(),
-			node_struct(ip));
+			node_struct(NULL, ip));
 		if (ite != available_list.end())
 		{
 			available_list.erase(ite);
@@ -273,9 +271,38 @@ void node::Start()
 	}
 }
 
+void node::Scan()
+{
+	if (!is_scan_finished)
+	{
+		start_scan();
+	}
+}
+
+bool node::IsConnected()
+{
+	return is_connected;
+}
+
 bool node::IsMaster()
 {
 	return (nt_ == NT_MASTER);
+}
+
+bool node::IsScanFinished()
+{
+	return is_scan_finished;
+}
+
+std::vector<node_struct>& node::GetAvailList()
+{
+	return available_list;
+}
+
+void node::AddTask(std::string task)
+{
+	task_list_.push_back(task_struct(task, 0));
+	AfxMessageBox(CString(task.c_str()));
 }
 
 void node::start_accept()
@@ -445,7 +472,7 @@ void node::handle_connect(session* new_session, msg_struct* msg,
 		if (msg->mt_ == MT_PING)
 		{
 			auto ite = std::find(available_list.begin(),
-				available_list.end(), node_struct(msg->ip_));
+				available_list.end(), node_struct(NULL, msg->ip_));
 			if (ite != available_list.end())
 			{
 				available_list.erase(ite);
@@ -499,10 +526,10 @@ void node::handle_msg(session* new_session, MyMsg msg)
 		{
 			new_session->recv_msg();
 			auto ite = std::find(available_list.begin(),
-				available_list.end(), node_struct(ip));
+				available_list.end(), node_struct(NULL, ip));
 			if (ite == available_list.end())
 			{
-				available_list.push_back(node_struct(ip));
+				available_list.push_back(node_struct(new_session, ip));
 				log(("Add leaf node "+ip).c_str());
 			}
 			boost::thread thr(boost::bind(&node::Distribute,
@@ -515,10 +542,10 @@ void node::handle_msg(session* new_session, MyMsg msg)
 			if (std::string(result) == ip_)
 			{
 				auto ite = std::find(available_list.begin(),
-					available_list.end(), node_struct(ip));
+					available_list.end(), node_struct(NULL, ip));
 				if (ite == available_list.end())
 				{
-					available_list.push_back(node_struct(ip));
+					available_list.push_back(node_struct(new_session, ip));
 					log(("Add leaf node "+ip).c_str());
 				}
 				boost::thread thr(boost::bind(&node::Distribute,
@@ -765,7 +792,7 @@ void node::handle_msg(session* new_session, MyMsg msg)
 		{
 			delete new_session;
 			auto ite = std::find(available_list.begin(),
-				available_list.end(), node_struct(ip));
+				available_list.end(), node_struct(NULL, ip));
 			if (ite != available_list.end())
 			{
 				if (result == "-1")

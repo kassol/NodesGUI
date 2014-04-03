@@ -3,6 +3,8 @@
 //
 
 #pragma once
+#include "afxcmn.h"
+#include "node.h"
 
 
 // CNodesGUIDlg ¶Ô»°¿ò
@@ -28,4 +30,25 @@ protected:
 	afx_msg void OnPaint();
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
+
+private:
+	node* pNode;
+	boost::asio::io_service service;
+
+public:
+	void UpdateAvailList();
+
+private:
+	void run_service();
+	void update_availlist();
+	void distribute();
+
+public:
+	CListCtrl m_ctrlAvailList;
+	afx_msg void OnBnClickedCancel();
+	virtual void OnOK();
+	virtual void OnCancel();
+	afx_msg void OnBnClickedScan();
+	afx_msg void OnBnClickedDistribute();
+	afx_msg void OnBnClickedFeedback();
 };
