@@ -5,6 +5,7 @@
 #pragma once
 #include "afxcmn.h"
 #include "node.h"
+#include "TaskListDlg.h"
 
 
 // CNodesGUIDlg ¶Ô»°¿ò
@@ -35,6 +36,7 @@ protected:
 private:
 	node* pNode;
 	boost::asio::io_service service;
+	CTaskListDlg* m_pTaskDlg;
 
 public:
 	void UpdateAvailList();
@@ -44,6 +46,7 @@ private:
 	void update_availlist();
 	void distribute();
 	void feedback();
+	void update_tasklist();
 
 public:
 	CListCtrl m_ctrlAvailList;

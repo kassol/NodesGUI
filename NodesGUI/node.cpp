@@ -385,6 +385,11 @@ std::vector<node_struct>& node::GetAvailList()
 	return available_list;
 }
 
+std::vector<task_struct>& node::GetTaskList()
+{
+	return task_list_;
+}
+
 void node::AddTask(std::string task)
 {
 	task_list_.push_back(task_struct(task, 0));

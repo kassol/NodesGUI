@@ -110,6 +110,7 @@
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="TaskListDlg.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="node.cpp" />
@@ -119,6 +120,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="TaskListDlg.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="NodesGUI.rc" />

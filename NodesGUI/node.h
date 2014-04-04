@@ -151,6 +151,7 @@ public:
 	bool IsFeedback();
 	bool InCharge();
 	std::vector<node_struct>& GetAvailList();
+	std::vector<task_struct>& GetTaskList();
 	void AddTask(std::string task);
 	void AddFeedBack(std::string task);
 	void Distribute(session* new_session, std::string ip);

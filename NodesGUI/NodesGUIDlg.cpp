@@ -17,6 +17,7 @@
 CNodesGUIDlg::CNodesGUIDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(CNodesGUIDlg::IDD, pParent)
 	, pNode(NULL)
+	, m_pTaskDlg(NULL)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 
@@ -169,6 +170,11 @@ void CNodesGUIDlg::feedback()
 	}
 }
 
+void CNodesGUIDlg::update_tasklist()
+{
+	m_pTaskDlg->UpdateTaskList(pNode);
+}
+
 
 void CNodesGUIDlg::UpdateAvailList()
 {
@@ -245,6 +251,13 @@ void CNodesGUIDlg::OnBnClickedDistribute()
 			return;
 		}
 		boost::thread thrd(boost::bind(&CNodesGUIDlg::distribute, this));
+		if (m_pTaskDlg == NULL)
+		{
+			m_pTaskDlg = new CTaskListDlg;
+			m_pTaskDlg->Create(IDD_TASKLIST);
+		}
+		m_pTaskDlg->ShowWindow(SW_SHOW);
+		boost::thread thrd2(boost::bind(&CNodesGUIDlg::update_tasklist, this));
 	}
 }
 
