@@ -126,6 +126,7 @@ public:
 		, is_requesting(false)
 		, is_feedback(false)
 		, is_receiving(false)
+		, is_distributing(false)
 		, master_session(NULL)
 	{
 		is_connected = Initialize();
@@ -141,12 +142,20 @@ public:
 
 	void Start();
 	void Scan();
+	void Ping();
 	bool IsConnected();
 	bool IsMaster();
+	bool IsBusy();
 	bool IsScanFinished();
+	bool IsDistributing();
+	bool IsFeedback();
+	bool InCharge();
 	std::vector<node_struct>& GetAvailList();
 	void AddTask(std::string task);
+	void AddFeedBack(std::string task);
 	void Distribute(session* new_session, std::string ip);
+	void Distribute();
+	void Feedback();
 
 private:
 	bool Initialize();
@@ -154,7 +163,7 @@ private:
 	void ParseMetafile();
 	void RequestFiles();
 	void Work();
-	void Feedback();
+	
 
 private:
 	void start_accept();
@@ -187,6 +196,7 @@ private:
 	bool is_busy;
 	bool is_connected;
 	bool is_scan_finished;
+	bool is_distributing;
 	bool is_requesting;
 	bool is_ping_busy;
 	bool is_feedback;

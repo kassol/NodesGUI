@@ -24,6 +24,12 @@ CNodesGUIDlg::CNodesGUIDlg(CWnd* pParent /*=NULL*/)
 	boost::thread thrd(boost::bind(&CNodesGUIDlg::run_service, this));
 }
 
+CNodesGUIDlg::~CNodesGUIDlg()
+{
+	service.stop();
+	delete pNode;
+}
+
 void CNodesGUIDlg::run_service()
 {
 	service.run();
@@ -42,6 +48,7 @@ BEGIN_MESSAGE_MAP(CNodesGUIDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_SCAN, &CNodesGUIDlg::OnBnClickedScan)
 	ON_BN_CLICKED(IDC_DISTRIBUTE, &CNodesGUIDlg::OnBnClickedDistribute)
 	ON_BN_CLICKED(IDC_FEEDBACK, &CNodesGUIDlg::OnBnClickedFeedback)
+	ON_NOTIFY(LVN_ITEMCHANGED, IDC_LEAFLIST, &CNodesGUIDlg::OnLvnItemchangedLeaflist)
 END_MESSAGE_MAP()
 
 
@@ -125,22 +132,22 @@ void CNodesGUIDlg::OnCancel()
 
 void CNodesGUIDlg::OnBnClickedScan()
 {
-	if (pNode->IsConnected())
+	if (pNode->IsConnected() && pNode->InCharge())
 	{
 		pNode->Scan();
 		boost::thread thrd(boost::bind(&CNodesGUIDlg::update_availlist, this));
+		pNode->Ping();
 	}
 }
 
 
 void CNodesGUIDlg::update_availlist()
 {
-	while(!pNode->IsScanFinished())
+	while(true)
 	{
 		UpdateAvailList();
 		Sleep(1000);
 	}
-	UpdateAvailList();
 }
 
 void CNodesGUIDlg::distribute()
@@ -151,12 +158,14 @@ void CNodesGUIDlg::distribute()
 	{
 		return;
 	}
-	auto ite_aval = avail_list.begin();
-	while(ite_aval != avail_list.end())
+	pNode->Distribute();
+}
+
+void CNodesGUIDlg::feedback()
+{
+	if (!pNode->IsMaster())
 	{
-		boost::thread thrd(boost::bind(&node::Distribute, pNode,
-			ite_aval->long_session_, ite_aval->ip_));
-		++ite_aval;
+		pNode->Feedback();
 	}
 }
 
@@ -188,6 +197,8 @@ void CNodesGUIDlg::UpdateAvailList()
 		{
 			m_ctrlAvailList.SetCheck(nCount, 0);
 		}
+		m_ctrlAvailList.SetColumnWidth(0, LVSCW_AUTOSIZE);
+		m_ctrlAvailList.SetColumnWidth(1, LVSCW_AUTOSIZE_USEHEADER);
 		++ite_node;
 	}
 }
@@ -195,48 +206,112 @@ void CNodesGUIDlg::UpdateAvailList()
 
 void CNodesGUIDlg::OnBnClickedDistribute()
 {
-	USES_CONVERSION;
-	wchar_t szPath[MAX_PATH];
-	CString strFindPath;
-	ZeroMemory(szPath, sizeof(szPath));
-	BROWSEINFO bi;
-	bi.hwndOwner = m_hWnd;
-	bi.pidlRoot = NULL;
-	bi.pszDisplayName = szPath;
-	bi.lpszTitle = _T("请选择任务目录");
-	bi.ulFlags = 0;
-	bi.lpfn = NULL;
-	bi.lParam = 0;
-	bi.iImage = 0;
-	LPITEMIDLIST lp = SHBrowseForFolder(&bi);
-	if (lp && SHGetPathFromIDList(lp, szPath))
+	if (!pNode->IsDistributing())
 	{
-		strFindPath.Format(_T("%s\\*.*"), szPath);
-		CFileFind find;
-		BOOL bf = find.FindFile(strFindPath);
-		CString strTaskPath;
-		while(bf)
+		USES_CONVERSION;
+		wchar_t szPath[MAX_PATH];
+		CString strFindPath;
+		ZeroMemory(szPath, sizeof(szPath));
+		BROWSEINFO bi;
+		bi.hwndOwner = m_hWnd;
+		bi.pidlRoot = NULL;
+		bi.pszDisplayName = szPath;
+		bi.lpszTitle = _T("请选择任务目录");
+		bi.ulFlags = 0;
+		bi.lpfn = NULL;
+		bi.lParam = 0;
+		bi.iImage = 0;
+		LPITEMIDLIST lp = SHBrowseForFolder(&bi);
+		if (lp && SHGetPathFromIDList(lp, szPath))
 		{
-			bf = find.FindNextFile();
-			strTaskPath = find.GetFilePath();
-			if (strTaskPath.Right(strTaskPath.GetLength()-
-				strTaskPath.ReverseFind(_T('.'))-1).CompareNoCase(_T("txt")) == 0)
+			strFindPath.Format(_T("%s\\*.*"), szPath);
+			CFileFind find;
+			BOOL bf = find.FindFile(strFindPath);
+			CString strTaskPath;
+			while(bf)
 			{
-				pNode->AddTask(T2A(strTaskPath));
+				bf = find.FindNextFile();
+				strTaskPath = find.GetFilePath();
+				if (strTaskPath.Right(strTaskPath.GetLength()-
+					strTaskPath.ReverseFind(_T('.'))-1).CompareNoCase(_T("txt")) == 0)
+				{
+					pNode->AddTask(T2A(strTaskPath));
+				}
 			}
 		}
+		else
+		{
+			AfxMessageBox(_T("无效的目录，请重新选择"));
+			return;
+		}
+		boost::thread thrd(boost::bind(&CNodesGUIDlg::distribute, this));
 	}
-	else
-	{
-		AfxMessageBox(_T("无效的目录，请重新选择"));
-		return;
-	}
-
-	boost::thread thrd(boost::bind(&CNodesGUIDlg::distribute, this));
 }
 
 
 void CNodesGUIDlg::OnBnClickedFeedback()
 {
+	if (!pNode->IsFeedback() && pNode->IsBusy())
+	{
+		USES_CONVERSION;
+		wchar_t szPath[MAX_PATH];
+		CString strFindPath;
+		ZeroMemory(szPath, sizeof(szPath));
+		BROWSEINFO bi;
+		bi.hwndOwner = m_hWnd;
+		bi.pidlRoot = NULL;
+		bi.pszDisplayName = szPath;
+		bi.lpszTitle = _T("请选择任务目录");
+		bi.ulFlags = 0;
+		bi.lpfn = NULL;
+		bi.lParam = 0;
+		bi.iImage = 0;
+		LPITEMIDLIST lp = SHBrowseForFolder(&bi);
+		if (lp && SHGetPathFromIDList(lp, szPath))
+		{
+			strFindPath.Format(_T("%s\\*.*"), szPath);
+			CFileFind find;
+			BOOL bf = find.FindFile(strFindPath);
+			CString strTaskPath;
+			while(bf)
+			{
+				bf = find.FindNextFile();
+				if (!find.IsDirectory())
+				{
+					strTaskPath = find.GetFilePath();
+					pNode->AddFeedBack(T2A(strTaskPath));
+				}
+			}
+		}
+		else
+		{
+			AfxMessageBox(_T("无效的目录，请重新选择"));
+			return;
+		}
+		boost::thread thrd(boost::bind(&CNodesGUIDlg::feedback, this));
+	}
+	else
+	{
+		AfxMessageBox(_T("上次反馈未结束或无反馈任务"));
+	}
+}
+
+
+void CNodesGUIDlg::OnLvnItemchangedLeaflist(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
 	
+	if (pNMLV->uOldState != 0)
+	{
+		USES_CONVERSION;
+		CString strIp = m_ctrlAvailList.GetItemText(pNMLV->iItem, 0);
+		std::vector<node_struct>& leaf_list = pNode->GetAvailList();
+		auto ite = std::find(leaf_list.begin(), leaf_list.end(),
+			node_struct(NULL, std::string(T2A(strIp))));
+		if (ite != leaf_list.end())
+		{
+			ite->is_checked = m_ctrlAvailList.GetCheck(pNMLV->iItem) ? 1 : 0;
+		}
+	}
+	*pResult = 0;
 }
