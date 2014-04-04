@@ -13,6 +13,7 @@ class CNodesGUIDlg : public CDialogEx
 // 构造
 public:
 	CNodesGUIDlg(CWnd* pParent = NULL);	// 标准构造函数
+	~CNodesGUIDlg();
 
 // 对话框数据
 	enum { IDD = IDD_NODESGUI_DIALOG };
@@ -42,6 +43,7 @@ private:
 	void run_service();
 	void update_availlist();
 	void distribute();
+	void feedback();
 
 public:
 	CListCtrl m_ctrlAvailList;
@@ -51,4 +53,5 @@ public:
 	afx_msg void OnBnClickedScan();
 	afx_msg void OnBnClickedDistribute();
 	afx_msg void OnBnClickedFeedback();
+	afx_msg void OnLvnItemchangedLeaflist(NMHDR *pNMHDR, LRESULT *pResult);
 };

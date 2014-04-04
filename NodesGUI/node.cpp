@@ -111,6 +111,54 @@ void node::Distribute(session* new_session, std::string ip)
 	}
 }
 
+void node::Distribute()
+{
+	is_distributing = true;
+	while(available_list.empty())
+	{
+		Sleep(1000);
+	}
+	std::string strmsg;
+	size_t i = 0;
+	std::for_each(task_list_.begin(), task_list_.end(), [&](task_struct& task)
+	{
+		char filesize[50] = "";
+		unsigned __int64 nfilesize = boost::filesystem::file_size(task.task_);
+		sprintf(filesize, "%I64x", nfilesize);
+		std::string filename = task.task_.substr(task.task_.rfind('\\')+1,
+			task.task_.size()-task.task_.rfind('\\')-1);
+		strmsg = filesize+std::string("|");
+		strmsg += filename;
+		if (available_list.empty())
+		{
+			return;
+		}
+		while(i < available_list.size())
+		{
+			if (!available_list.at(i).is_busy && available_list.at(i).is_checked)
+			{
+				++cur_filenum;
+				task.state_ = 1;
+				task.ip_ = available_list.at(i).ip_;
+				available_list.at(i).is_busy = true;
+				available_list.at(i).long_session_->send_msg(MT_METAFILE, strmsg.c_str());
+				i = (i+1)%available_list.size();
+				break;
+			}
+			i = (i+1)%available_list.size();
+			if (i == 0)
+			{
+				Sleep(1000);
+			}
+		}
+		while(cur_filenum >= limit_filenum_to_transfer)
+		{
+			Sleep(1000);
+		}
+	});
+	is_distributing = false;
+}
+
 void node::ParseMetafile()
 {
 	log("Parse metafile");
@@ -177,7 +225,7 @@ void node::RequestFiles()
 
 	log("Finish request file, Start working");
 
-	Work();
+	//Work();
 }
 
 void node::Work()
@@ -240,7 +288,7 @@ void node::Feedback()
 		}
 		Sleep(1000);
 	}
-
+	log("Send finish msg");
 	master_session->send_msg(MT_FINISH, "finish");
 	is_busy = false;
 	log("Free now");
@@ -273,9 +321,17 @@ void node::Start()
 
 void node::Scan()
 {
-	if (!is_scan_finished)
+	if (is_scan_finished)
 	{
 		start_scan();
+	}
+}
+
+void node::Ping()
+{
+	if (!is_ping_busy)
+	{
+		boost::thread ping_thread(boost::bind(&node::start_ping, this));
 	}
 }
 
@@ -289,9 +345,39 @@ bool node::IsMaster()
 	return (nt_ == NT_MASTER);
 }
 
+bool node::IsBusy()
+{
+	return is_busy;
+}
+
 bool node::IsScanFinished()
 {
 	return is_scan_finished;
+}
+
+bool node::IsDistributing()
+{
+	return is_distributing;
+}
+
+bool node::IsFeedback()
+{
+	return is_feedback;
+}
+
+bool node::InCharge()
+{
+	if (master_ip == "")
+	{
+		nt_ = NT_MASTER;
+		master_ip = ip_;
+		return true;
+	}
+	else if (master_ip == ip_)
+	{
+		return true;
+	}
+	return false;
 }
 
 std::vector<node_struct>& node::GetAvailList()
@@ -302,6 +388,12 @@ std::vector<node_struct>& node::GetAvailList()
 void node::AddTask(std::string task)
 {
 	task_list_.push_back(task_struct(task, 0));
+	AfxMessageBox(CString(task.c_str()));
+}
+
+void node::AddFeedBack(std::string task)
+{
+	feedback_list.push_back(task_struct(task, 0));
 	AfxMessageBox(CString(task.c_str()));
 }
 
@@ -532,8 +624,8 @@ void node::handle_msg(session* new_session, MyMsg msg)
 				available_list.push_back(node_struct(new_session, ip));
 				log(("Add leaf node "+ip).c_str());
 			}
-			boost::thread thr(boost::bind(&node::Distribute,
-				this, new_session, ip));
+// 			boost::thread thr(boost::bind(&node::Distribute,
+// 				this, new_session, ip));
 			break;
 		}
 	case MT_OCCUPIED:
@@ -548,8 +640,8 @@ void node::handle_msg(session* new_session, MyMsg msg)
 					available_list.push_back(node_struct(new_session, ip));
 					log(("Add leaf node "+ip).c_str());
 				}
-				boost::thread thr(boost::bind(&node::Distribute,
-					this, new_session, ip));
+// 				boost::thread thr(boost::bind(&node::Distribute,
+// 					this, new_session, ip));
 			}
 			else
 			{
@@ -821,8 +913,8 @@ void node::handle_msg(session* new_session, MyMsg msg)
 				}
 				++ite_task;
 			}
-			boost::thread thr(boost::bind(&node::Distribute,
-				this, new_session, ip));
+// 			boost::thread thr(boost::bind(&node::Distribute,
+// 				this, new_session, ip));
 			break;
 		}
 	case MT_FREE:
