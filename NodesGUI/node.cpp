@@ -122,38 +122,41 @@ void node::Distribute()
 	size_t i = 0;
 	std::for_each(task_list_.begin(), task_list_.end(), [&](task_struct& task)
 	{
-		char filesize[50] = "";
-		unsigned __int64 nfilesize = boost::filesystem::file_size(task.task_);
-		sprintf(filesize, "%I64x", nfilesize);
-		std::string filename = task.task_.substr(task.task_.rfind('\\')+1,
-			task.task_.size()-task.task_.rfind('\\')-1);
-		strmsg = filesize+std::string("|");
-		strmsg += filename;
-		if (available_list.empty())
+		if (task.state_ == 0)
 		{
-			return;
-		}
-		while(i < available_list.size())
-		{
-			if (!available_list.at(i).is_busy && available_list.at(i).is_checked)
+			char filesize[50] = "";
+			unsigned __int64 nfilesize = boost::filesystem::file_size(task.task_);
+			sprintf(filesize, "%I64x", nfilesize);
+			std::string filename = task.task_.substr(task.task_.rfind('\\')+1,
+				task.task_.size()-task.task_.rfind('\\')-1);
+			strmsg = filesize+std::string("|");
+			strmsg += filename;
+			if (available_list.empty())
 			{
-				++cur_filenum;
-				task.state_ = 1;
-				task.ip_ = available_list.at(i).ip_;
-				available_list.at(i).is_busy = true;
-				available_list.at(i).long_session_->send_msg(MT_METAFILE, strmsg.c_str());
-				i = (i+1)%available_list.size();
-				break;
+				return;
 			}
-			i = (i+1)%available_list.size();
-			if (i == 0)
+			while(i < available_list.size())
+			{
+				if (!available_list.at(i).is_busy && available_list.at(i).is_checked)
+				{
+					++cur_filenum;
+					task.state_ = 1;
+					task.ip_ = available_list.at(i).ip_;
+					available_list.at(i).is_busy = true;
+					available_list.at(i).long_session_->send_msg(MT_METAFILE, strmsg.c_str());
+					i = (i+1)%available_list.size();
+					break;
+				}
+				i = (i+1)%available_list.size();
+				if (i == 0)
+				{
+					Sleep(1000);
+				}
+			}
+			while(cur_filenum >= limit_filenum_to_transfer)
 			{
 				Sleep(1000);
 			}
-		}
-		while(cur_filenum >= limit_filenum_to_transfer)
-		{
-			Sleep(1000);
 		}
 	});
 	is_distributing = false;
@@ -328,6 +331,10 @@ void node::Scan()
 	{
 		start_scan();
 	}
+	else
+	{
+		AfxMessageBox(_T("上次扫描未结束"));
+	}
 }
 
 void node::Ping()
@@ -400,13 +407,23 @@ std::deque<std::string>& node::GetLogList()
 
 void node::AddTask(std::string task)
 {
-	task_list_.push_back(task_struct(task, 0));
+	auto ite = std::find(task_list_.begin(), task_list_.end(),
+		task_struct(task, 0));
+	if (ite == task_list_.end())
+	{
+		task_list_.push_back(task_struct(task, 0));
+	}
 	//AfxMessageBox(CString(task.c_str()));
 }
 
 void node::AddFeedBack(std::string task)
 {
-	feedback_list.push_back(task_struct(task, 0));
+	auto ite = std::find(feedback_list.begin(), feedback_list.end(),
+		task_struct(task, 0));
+	if (ite == feedback_list.end())
+	{
+		feedback_list.push_back(task_struct(task, 0));
+	}
 	//AfxMessageBox(CString(task.c_str()));
 }
 
@@ -627,10 +644,17 @@ void node::handle_msg(session* new_session, MyMsg msg)
 			new_session->recv_msg();
 			if (master_ip == "")
 			{
-				master_ip = ip;
-				log(("Connected to the master node "+master_ip).c_str());
-				master_session = new_session;
-				new_session->send_msg(MT_AVAILABLE, "successful");
+				if (IDYES == MessageBox(NULL, _T("Recv task?"), _T(""), MB_YESNO))
+				{
+					master_ip = ip;
+					log(("Connected to the master node "+master_ip).c_str());
+					master_session = new_session;
+					new_session->send_msg(MT_AVAILABLE, "successful");
+				}
+				else
+				{
+					new_session->send_msg(MT_OCCUPIED, "255.255.255.255");
+				}
 			}
 			else
 			{
@@ -649,7 +673,7 @@ void node::handle_msg(session* new_session, MyMsg msg)
 				available_list.end(), node_struct(NULL, ip));
 			if (ite == available_list.end())
 			{
-				available_list.push_back(node_struct(new_session, ip));
+				available_list.push_back(node_struct(new_session, ip, true));
 				log(("Add leaf node "+ip).c_str());
 				add_log(("Add leaf node "+ip).c_str());
 			}
@@ -685,9 +709,33 @@ void node::handle_msg(session* new_session, MyMsg msg)
 			is_busy = true;
 			char* pathname;
 			unsigned __int64 filesize = _strtoui64(result.c_str(), &pathname, 16);
-			metafile_name =
-				std::string(pathname).substr(1, std::string(pathname).size()-1);
-
+			USES_CONVERSION;
+			wchar_t szPath[MAX_PATH];
+			CString strPath;
+			ZeroMemory(szPath, sizeof(szPath));
+			BROWSEINFO bi;
+			bi.hwndOwner = NULL;
+			bi.pidlRoot = NULL;
+			bi.pszDisplayName = szPath;
+			bi.lpszTitle = _T("请选择任务目录");
+			bi.ulFlags = 0;
+			bi.lpfn = NULL;
+			bi.lParam = 0;
+			bi.iImage = 0;
+			LPITEMIDLIST lp = SHBrowseForFolder(&bi);
+			if (lp && SHGetPathFromIDList(lp, szPath))
+			{
+				strPath.Format(_T("%s\\"), szPath);
+				path_name = T2A(strPath);
+				metafile_name =
+					std::string(pathname).substr(1, std::string(pathname).size()-1);
+				metafile_name = path_name+metafile_name;
+			}
+			else
+			{
+				new_session->send_msg(MT_METAFILE_FAIL, "");
+			}
+			
 			unsigned short file_port = 8999;
 			boost::system::error_code ec;
 			tcp::endpoint ep(tcp::v4(), file_port);
@@ -798,7 +846,7 @@ void node::handle_msg(session* new_session, MyMsg msg)
 			session* file_session = new session(io_service_, this, ST_FILE);
 			file_acceptor_.async_accept(file_session->socket(),
 				boost::bind(&node::handle_accept_file, this, file_session,
-				new file_struct(filename, filesize),
+				new file_struct(path_name+filename, filesize),
 				boost::asio::placeholders::error));
 
 			char* pfileport = new char[5];
@@ -942,6 +990,12 @@ void node::handle_msg(session* new_session, MyMsg msg)
 					break;
 				}
 				++ite_task;
+			}
+			auto ite = std::find(available_list.begin(), available_list.end(),
+				node_struct(NULL, ip));
+			if (ite != available_list.end())
+			{
+				ite->is_busy = false;
 			}
 // 			boost::thread thr(boost::bind(&node::Distribute,
 // 				this, new_session, ip));

@@ -33,6 +33,11 @@ struct task_struct
 	std::string task_;
 	unsigned int state_;
 	std::string ip_;
+
+	bool operator==(const task_struct& task)
+	{
+		return task.task_ == task_;
+	}
 };
 
 struct node_struct
@@ -42,6 +47,14 @@ struct node_struct
 		, ip_(ip)
 		, is_busy(false)
 		, is_checked(false)
+	{
+
+	}
+	node_struct(session* long_session, std::string ip, bool checked)
+		: long_session_(long_session)
+		, ip_(ip)
+		, is_busy(false)
+		, is_checked(checked)
 	{
 
 	}
@@ -103,7 +116,6 @@ struct addr_struct
 class node : public boost::enable_shared_from_this<node>
 	, boost::noncopyable
 {
-
 public:
 	enum NodeType{NT_MASTER, NT_NORMAL};
 	friend class session;
@@ -190,6 +202,7 @@ private:
 	std::string ip_;
 	std::string master_ip;
 	std::string metafile_name;
+	std::string path_name;
 	unsigned short listen_port;
 	boost::asio::io_service& io_service_;
 	boost::asio::ip::tcp::acceptor acceptor_;

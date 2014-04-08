@@ -148,7 +148,7 @@ void CNodesGUIDlg::OnBnClickedScan()
 	{
 		pNode->Scan();
 		boost::thread thrd(boost::bind(&CNodesGUIDlg::update_availlist, this));
-		pNode->Ping();
+		//pNode->Ping();
 	}
 }
 
@@ -282,7 +282,17 @@ void CNodesGUIDlg::OnBnClickedDistribute()
 			return;
 		}
 		boost::thread thrd(boost::bind(&CNodesGUIDlg::distribute, this));
+		if (m_pTaskDlg == NULL)
+		{
+			m_pTaskDlg = new CTaskListDlg;
+			m_pTaskDlg->Create(IDD_TASKLIST);
+		}
+		m_pTaskDlg->ShowWindow(SW_SHOW);
 		boost::thread thrd2(boost::bind(&CNodesGUIDlg::update_tasklist, this));
+	}
+	else
+	{
+		AfxMessageBox(_T("已经在分配任务"));
 	}
 }
 
