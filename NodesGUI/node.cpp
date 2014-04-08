@@ -162,6 +162,7 @@ void node::Distribute()
 void node::ParseMetafile()
 {
 	log("Parse metafile");
+	add_log("Parse metafile");
 	std::fstream infile;
 	infile.open(metafile_name, std::ios::in);
 	if (!infile)
@@ -205,6 +206,7 @@ void node::RequestFiles()
 			ite_task->state_ = 1;
 		}
 		log(("Request file "+ite_task->task_).c_str());
+		add_log(("Request file "+ite_task->task_).c_str());
 		master_session->send_msg(MT_FILE_REQUEST, ite_task->task_.c_str());
 	}
 
@@ -224,7 +226,7 @@ void node::RequestFiles()
 	}
 
 	log("Finish request file, Start working");
-
+	add_log("Finish request file, Start working");
 	//Work();
 }
 
@@ -292,6 +294,7 @@ void node::Feedback()
 	master_session->send_msg(MT_FINISH, "finish");
 	is_busy = false;
 	log("Free now");
+	add_log("Finish the feedback");
 }
 
 void node::Start()
@@ -390,16 +393,34 @@ std::vector<task_struct>& node::GetTaskList()
 	return task_list_;
 }
 
+std::deque<std::string>& node::GetLogList()
+{
+	return log_list;
+}
+
 void node::AddTask(std::string task)
 {
 	task_list_.push_back(task_struct(task, 0));
-	AfxMessageBox(CString(task.c_str()));
+	//AfxMessageBox(CString(task.c_str()));
 }
 
 void node::AddFeedBack(std::string task)
 {
 	feedback_list.push_back(task_struct(task, 0));
-	AfxMessageBox(CString(task.c_str()));
+	//AfxMessageBox(CString(task.c_str()));
+}
+
+void node::add_log(const char* p)
+{
+	time_t rawtime;
+	time(&rawtime);
+	char current_time[512] = "";
+
+	strftime(current_time, sizeof(current_time),
+		"[%Y/%m/%d %H:%M:%S] ", localtime(&rawtime));
+	std::string logs(current_time);
+	logs += p;
+	log_list.push_back(logs);
 }
 
 void node::start_accept()
@@ -504,6 +525,7 @@ void node::handle_accept_file(session* new_session, file_struct* file,
 	if (!error)
 	{
 		log(("RECV "+file->filename_).c_str());
+		add_log(("RECV "+file->filename_).c_str());
 		new_session->recv_file(file->filename_, file->filesize_);
 	}
 	else
@@ -574,6 +596,7 @@ void node::handle_connect(session* new_session, msg_struct* msg,
 			{
 				available_list.erase(ite);
 				log(("Lose the connecttion from"+msg->ip_).c_str());
+				add_log(("Lose the connecttion from"+msg->ip_).c_str());
 			}
 		}
 		log(error.message().c_str());
@@ -628,6 +651,7 @@ void node::handle_msg(session* new_session, MyMsg msg)
 			{
 				available_list.push_back(node_struct(new_session, ip));
 				log(("Add leaf node "+ip).c_str());
+				add_log(("Add leaf node "+ip).c_str());
 			}
 // 			boost::thread thr(boost::bind(&node::Distribute,
 // 				this, new_session, ip));
@@ -644,6 +668,7 @@ void node::handle_msg(session* new_session, MyMsg msg)
 				{
 					available_list.push_back(node_struct(new_session, ip));
 					log(("Add leaf node "+ip).c_str());
+					add_log(("Add leaf node "+ip).c_str());
 				}
 // 				boost::thread thr(boost::bind(&node::Distribute,
 // 					this, new_session, ip));
@@ -1063,6 +1088,7 @@ void node::send_metafile(session* new_session, addr_struct* addr,
 			return;
 		}
 		log("Send metafile");
+		add_log(("Send task "+task_path).c_str());
 		new_session->send_file(task_path, boost::filesystem::file_size(task_path));
 	}
 	else
@@ -1078,6 +1104,7 @@ void node::send_file(session* new_session, file_struct* file,
 {
 	if (!error)
 	{
+		add_log(("Send file "+file->filename_).c_str());
 		new_session->send_file(file->filename_,
 			boost::filesystem::file_size(file->filename_));
 	}

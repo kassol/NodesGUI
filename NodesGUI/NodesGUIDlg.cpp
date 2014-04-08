@@ -29,6 +29,13 @@ CNodesGUIDlg::~CNodesGUIDlg()
 {
 	service.stop();
 	delete pNode;
+	pNode = NULL;
+	if (m_pTaskDlg != NULL)
+	{
+		m_pTaskDlg->DestroyWindow();
+		delete m_pTaskDlg;
+		m_pTaskDlg = NULL;
+	}
 }
 
 void CNodesGUIDlg::run_service()
@@ -40,6 +47,7 @@ void CNodesGUIDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_LEAFLIST, m_ctrlAvailList);
+	DDX_Control(pDX, IDC_LOGLIST, m_ctrlLogList);
 }
 
 BEGIN_MESSAGE_MAP(CNodesGUIDlg, CDialogEx)
@@ -50,6 +58,7 @@ BEGIN_MESSAGE_MAP(CNodesGUIDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_DISTRIBUTE, &CNodesGUIDlg::OnBnClickedDistribute)
 	ON_BN_CLICKED(IDC_FEEDBACK, &CNodesGUIDlg::OnBnClickedFeedback)
 	ON_NOTIFY(LVN_ITEMCHANGED, IDC_LEAFLIST, &CNodesGUIDlg::OnLvnItemchangedLeaflist)
+	ON_COMMAND(ID_MENU_TASKLIST, &CNodesGUIDlg::OnMenuTasklist)
 END_MESSAGE_MAP()
 
 
@@ -72,6 +81,8 @@ BOOL CNodesGUIDlg::OnInitDialog()
 	m_ctrlAvailList.InsertColumn(1, _T("State"));
 	m_ctrlAvailList.SetColumnWidth(0, LVSCW_AUTOSIZE_USEHEADER);
 	m_ctrlAvailList.SetColumnWidth(1, LVSCW_AUTOSIZE_USEHEADER);
+
+	boost::thread thrd(boost::bind(&CNodesGUIDlg::update_loglist, this));
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -175,6 +186,26 @@ void CNodesGUIDlg::update_tasklist()
 	m_pTaskDlg->UpdateTaskList(pNode);
 }
 
+void CNodesGUIDlg::update_loglist()
+{
+	std::deque<std::string>& log_list = pNode->GetLogList();
+	while(true)
+	{
+		if (log_list.empty())
+		{
+			Sleep(100);
+			continue;
+		}
+		else
+		{
+			CString strMsg(log_list.front().c_str());
+			log_list.pop_front();
+			m_ctrlLogList.InsertString(m_ctrlLogList.GetCount(), strMsg);
+			m_ctrlLogList.SetTopIndex(max(m_ctrlLogList.GetCount()-9, 0));
+		}
+	}
+}
+
 
 void CNodesGUIDlg::UpdateAvailList()
 {
@@ -251,12 +282,6 @@ void CNodesGUIDlg::OnBnClickedDistribute()
 			return;
 		}
 		boost::thread thrd(boost::bind(&CNodesGUIDlg::distribute, this));
-		if (m_pTaskDlg == NULL)
-		{
-			m_pTaskDlg = new CTaskListDlg;
-			m_pTaskDlg->Create(IDD_TASKLIST);
-		}
-		m_pTaskDlg->ShowWindow(SW_SHOW);
 		boost::thread thrd2(boost::bind(&CNodesGUIDlg::update_tasklist, this));
 	}
 }
@@ -327,4 +352,16 @@ void CNodesGUIDlg::OnLvnItemchangedLeaflist(NMHDR *pNMHDR, LRESULT *pResult)
 		}
 	}
 	*pResult = 0;
+}
+
+
+void CNodesGUIDlg::OnMenuTasklist()
+{
+	if (m_pTaskDlg == NULL)
+	{
+		m_pTaskDlg = new CTaskListDlg;
+		m_pTaskDlg->Create(IDD_TASKLIST);
+	}
+	m_pTaskDlg->ShowWindow(SW_SHOW);
+	boost::thread thrd(boost::bind(&CNodesGUIDlg::update_tasklist, this));
 }

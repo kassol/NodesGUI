@@ -98,7 +98,6 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <None Include="ReadMe.txt" />
     <None Include="res\NodesGUI.ico" />
     <None Include="res\NodesGUI.rc2" />
   </ItemGroup>

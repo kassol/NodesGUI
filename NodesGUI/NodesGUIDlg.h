@@ -6,6 +6,7 @@
 #include "afxcmn.h"
 #include "node.h"
 #include "TaskListDlg.h"
+#include "afxwin.h"
 
 
 // CNodesGUIDlg ¶Ô»°¿ò
@@ -47,6 +48,7 @@ private:
 	void distribute();
 	void feedback();
 	void update_tasklist();
+	void update_loglist();
 
 public:
 	CListCtrl m_ctrlAvailList;
@@ -57,4 +59,6 @@ public:
 	afx_msg void OnBnClickedDistribute();
 	afx_msg void OnBnClickedFeedback();
 	afx_msg void OnLvnItemchangedLeaflist(NMHDR *pNMHDR, LRESULT *pResult);
+	CListBox m_ctrlLogList;
+	afx_msg void OnMenuTasklist();
 };

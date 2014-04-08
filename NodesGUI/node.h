@@ -152,6 +152,7 @@ public:
 	bool InCharge();
 	std::vector<node_struct>& GetAvailList();
 	std::vector<task_struct>& GetTaskList();
+	std::deque<std::string>& GetLogList();
 	void AddTask(std::string task);
 	void AddFeedBack(std::string task);
 	void Distribute(session* new_session, std::string ip);
@@ -167,6 +168,7 @@ private:
 	
 
 private:
+	void add_log(const char* p);
 	void start_accept();
 	void start_scan();
 	void start_ping();
@@ -211,6 +213,8 @@ private:
 	std::vector<task_struct> task_list_;
 	std::vector<task_struct> request_list;
 	std::vector<task_struct> feedback_list;
+
+	std::deque<std::string> log_list;
 
 	session* master_session;
 
