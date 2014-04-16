@@ -38,6 +38,7 @@ END_MESSAGE_MAP()
 
 void CTaskListDlg::UpdateTaskList(node* pNode)
 {
+	USES_CONVERSION;
 	if (is_updating_list)
 	{
 		return;
@@ -66,8 +67,10 @@ void CTaskListDlg::UpdateTaskList(node* pNode)
 			{
 				m_ctrlTaskList.SetItemText(nCount, 1, _T("Finished"));
 			}
+			m_ctrlTaskList.SetItemText(nCount, 2, A2T(ite->ip_.c_str()));
 			m_ctrlTaskList.SetColumnWidth(0, LVSCW_AUTOSIZE);
 			m_ctrlTaskList.SetColumnWidth(1, LVSCW_AUTOSIZE_USEHEADER);
+			m_ctrlTaskList.SetColumnWidth(2, LVSCW_AUTOSIZE_USEHEADER);
 			++ite;
 		}
 		Sleep(1000);
@@ -82,8 +85,10 @@ BOOL CTaskListDlg::OnInitDialog()
 	m_ctrlTaskList.SetExtendedStyle(LVS_EX_FULLROWSELECT|LVS_EX_GRIDLINES);
 	m_ctrlTaskList.InsertColumn(0, _T("Task"));
 	m_ctrlTaskList.InsertColumn(1, _T("State"));
+	m_ctrlTaskList.InsertColumn(2, _T("IP Address"));
 	m_ctrlTaskList.SetColumnWidth(0, LVSCW_AUTOSIZE_USEHEADER);
 	m_ctrlTaskList.SetColumnWidth(1, LVSCW_AUTOSIZE_USEHEADER);
+	m_ctrlTaskList.SetColumnWidth(2, LVSCW_AUTOSIZE_USEHEADER);
 	return TRUE;  // return TRUE unless you set the focus to a control
 	// EXCEPTION: OCX Property Pages should return FALSE
 }

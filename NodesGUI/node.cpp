@@ -734,6 +734,7 @@ void node::handle_msg(session* new_session, MyMsg msg)
 			else
 			{
 				new_session->send_msg(MT_METAFILE_FAIL, "");
+				break;
 			}
 			
 			unsigned short file_port = 8999;
@@ -789,8 +790,16 @@ void node::handle_msg(session* new_session, MyMsg msg)
 			{
 				if (ite->state_ == 1 && ite->ip_ == ip)
 				{
-					boost::thread thr(boost::bind(&node::Distribute,
-						this, new_session, ip));
+					ite->state_ = 0;
+					ite->ip_ = "";
+					auto ite_node = std::find(available_list.begin(),
+						available_list.end(), node_struct(NULL, ip));
+					if (ite_node != available_list.end())
+					{
+						ite_node->is_busy = false;
+					}
+// 					boost::thread thr(boost::bind(&node::Distribute,
+// 						this, new_session, ip));
 					break;
 				}
 				++ite;

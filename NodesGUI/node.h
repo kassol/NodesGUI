@@ -363,6 +363,10 @@ private:
 		else
 		{
 			log(error.message().c_str());
+			if (error == boost::asio::error::eof)
+			{
+
+			}
 			if (is_available)
 			{
 				is_available = false;

@@ -22,6 +22,7 @@ CNodesGUIDlg::CNodesGUIDlg(CWnd* pParent /*=NULL*/)
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 
 	pNode = new node(service, 9199);
+
 	boost::thread thrd(boost::bind(&CNodesGUIDlg::run_service, this));
 }
 
@@ -81,6 +82,7 @@ BOOL CNodesGUIDlg::OnInitDialog()
 	m_ctrlAvailList.InsertColumn(1, _T("State"));
 	m_ctrlAvailList.SetColumnWidth(0, LVSCW_AUTOSIZE_USEHEADER);
 	m_ctrlAvailList.SetColumnWidth(1, LVSCW_AUTOSIZE_USEHEADER);
+	GetDlgItem(IDC_DISTRIBUTE)->EnableWindow(FALSE);
 
 	boost::thread thrd(boost::bind(&CNodesGUIDlg::update_loglist, this));
 
@@ -150,6 +152,10 @@ void CNodesGUIDlg::OnBnClickedScan()
 		boost::thread thrd(boost::bind(&CNodesGUIDlg::update_availlist, this));
 		//pNode->Ping();
 	}
+	else
+	{
+		AfxMessageBox(_T("未连接网络或已是子节点，无法扫描"));
+	}
 }
 
 
@@ -210,6 +216,14 @@ void CNodesGUIDlg::update_loglist()
 void CNodesGUIDlg::UpdateAvailList()
 {
 	std::vector<node_struct> &avail_list = pNode->GetAvailList();
+	if (avail_list.empty())
+	{
+		GetDlgItem(IDC_DISTRIBUTE)->EnableWindow(FALSE);
+	}
+	else
+	{
+		GetDlgItem(IDC_DISTRIBUTE)->EnableWindow(TRUE);
+	}
 	auto ite_node = avail_list.begin();
 	m_ctrlAvailList.DeleteAllItems();
 	int nCount = 0;
