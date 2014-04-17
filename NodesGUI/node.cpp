@@ -25,6 +25,21 @@ void log(const char* p)
 	node::outfile.close();
 }
 
+void log(int error_code)
+{
+	time_t rawtime;
+	time(&rawtime);
+	char current_time[512] = "";
+
+	strftime(current_time, sizeof(current_time),
+		"[%Y/%m/%d %H:%M:%S] ", localtime(&rawtime));
+	std::string out(current_time);
+	std::cout<<out<<error_code<<"\n";
+	node::outfile.open("log.txt", std::ios::out|std::ios::app);
+	node::outfile<<out<<error_code<<"\n";
+	node::outfile.close();
+}
+
 bool node::Initialize()
 {
 	try
