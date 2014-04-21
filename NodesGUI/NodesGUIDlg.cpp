@@ -79,9 +79,11 @@ BOOL CNodesGUIDlg::OnInitDialog()
 	m_ctrlAvailList.SetExtendedStyle(LVS_EX_FULLROWSELECT
 		|LVS_EX_GRIDLINES|LVS_EX_CHECKBOXES);
 	m_ctrlAvailList.InsertColumn(0, _T("IP Address"));
-	m_ctrlAvailList.InsertColumn(1, _T("State"));
+	m_ctrlAvailList.InsertColumn(1, _T("ID"));
+	m_ctrlAvailList.InsertColumn(2, _T("State"));
 	m_ctrlAvailList.SetColumnWidth(0, LVSCW_AUTOSIZE_USEHEADER);
 	m_ctrlAvailList.SetColumnWidth(1, LVSCW_AUTOSIZE_USEHEADER);
+	m_ctrlAvailList.SetColumnWidth(2, LVSCW_AUTOSIZE_USEHEADER);
 	GetDlgItem(IDC_DISTRIBUTE)->EnableWindow(FALSE);
 
 	boost::thread thrd(boost::bind(&CNodesGUIDlg::update_loglist, this));
@@ -232,13 +234,14 @@ void CNodesGUIDlg::UpdateAvailList()
 		nCount = m_ctrlAvailList.GetItemCount();
 		m_ctrlAvailList.InsertItem(nCount, _T(""));
 		m_ctrlAvailList.SetItemText(nCount, 0, CString(ite_node->ip_.c_str()));
+		m_ctrlAvailList.SetItemText(nCount, 1, CString(ite_node->id_.c_str()));
 		if (ite_node->is_busy)
 		{
-			m_ctrlAvailList.SetItemText(nCount, 1, _T("busy"));
+			m_ctrlAvailList.SetItemText(nCount, 2, _T("busy"));
 		}
 		else
 		{
-			m_ctrlAvailList.SetItemText(nCount, 1, _T("free"));
+			m_ctrlAvailList.SetItemText(nCount, 2, _T("free"));
 		}
 		if (ite_node->is_checked)
 		{
@@ -249,7 +252,8 @@ void CNodesGUIDlg::UpdateAvailList()
 			m_ctrlAvailList.SetCheck(nCount, 0);
 		}
 		m_ctrlAvailList.SetColumnWidth(0, LVSCW_AUTOSIZE);
-		m_ctrlAvailList.SetColumnWidth(1, LVSCW_AUTOSIZE_USEHEADER);
+		m_ctrlAvailList.SetColumnWidth(1, LVSCW_AUTOSIZE);
+		m_ctrlAvailList.SetColumnWidth(2, LVSCW_AUTOSIZE_USEHEADER);
 		++ite_node;
 	}
 }

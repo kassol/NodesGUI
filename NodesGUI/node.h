@@ -6,6 +6,10 @@
 
 #include "mymsg.h"
 #include <boost/asio.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid//uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+#include <boost/lexical_cast.hpp>
 #include <boost/bind/bind.hpp>
 #include <boost/thread.hpp>
 #include <boost/filesystem.hpp>
@@ -16,6 +20,7 @@
 #include <deque>
 #include <vector>
 
+using namespace boost::uuids; 
 
 void log(const char* p);
 
@@ -27,12 +32,14 @@ struct task_struct
 		: task_(task)
 		, state_(state)
 	{
-		ip_ = "";
+
 	}
 
 	std::string task_;
 	unsigned int state_;
 	std::string ip_;
+	std::string id_;
+	
 
 	bool operator==(const task_struct& task)
 	{
@@ -58,14 +65,24 @@ struct node_struct
 	{
 
 	}
+	node_struct(session* long_session, std::string ip, std::string id, bool checked)
+		: long_session_(long_session)
+		, ip_(ip)
+		, id_(id)
+		, is_busy(false)
+		, is_checked(checked)
+	{
+		
+	}
 	session* long_session_;
 	std::string ip_;
+	std::string id_;
 	bool is_busy;
 	bool is_checked;
 
 	bool operator==(const node_struct& node)
 	{
-		return node.ip_==ip_;
+		return node.id_==id_;
 	}
 };
 
@@ -200,6 +217,7 @@ private:
 private:
 	NodeType nt_;
 	std::string ip_;
+	std::string id_;
 	std::string master_ip;
 	std::string metafile_name;
 	std::string path_name;

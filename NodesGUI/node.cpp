@@ -157,6 +157,7 @@ void node::Distribute()
 					++cur_filenum;
 					task.state_ = 1;
 					task.ip_ = available_list.at(i).ip_;
+					task.id_ = available_list.at(i).id_;
 					available_list.at(i).is_busy = true;
 					available_list.at(i).long_session_->send_msg(MT_METAFILE, strmsg.c_str());
 					i = (i+1)%available_list.size();
@@ -581,7 +582,10 @@ void node::handle_connect(session* new_session,
 		{
 			std::string ip = ep.address().to_string();
 			log(("Send MT_MASTER to "+ip).c_str());
-			new_session->send_msg(MT_MASTER, "hello leaf");
+			random_generator rgen;  
+			uuid ranUUID = rgen();
+			const std::string id = boost::lexical_cast<std::string>(ranUUID);
+			new_session->send_msg(MT_MASTER, id.c_str());
 		}
 		else
 		{
@@ -662,9 +666,10 @@ void node::handle_msg(session* new_session, MyMsg msg)
 				if (IDYES == MessageBox(NULL, _T("Recv task?"), _T(""), MB_YESNO))
 				{
 					master_ip = ip;
+					id_ = result;
 					log(("Connected to the master node "+master_ip).c_str());
 					master_session = new_session;
-					new_session->send_msg(MT_AVAILABLE, "successful");
+					new_session->send_msg(MT_AVAILABLE, result.c_str());
 				}
 				else
 				{
@@ -688,29 +693,26 @@ void node::handle_msg(session* new_session, MyMsg msg)
 				available_list.end(), node_struct(NULL, ip));
 			if (ite == available_list.end())
 			{
-				available_list.push_back(node_struct(new_session, ip, true));
+				available_list.push_back(node_struct(new_session, ip, result, true));
 				log(("Add leaf node "+ip).c_str());
 				add_log(("Add leaf node "+ip).c_str());
 			}
-// 			boost::thread thr(boost::bind(&node::Distribute,
-// 				this, new_session, ip));
+
 			break;
 		}
 	case MT_OCCUPIED:
 		{
 			new_session->recv_msg();
-			if (std::string(result) == ip_)
+			if (result == ip_)
 			{
 				auto ite = std::find(available_list.begin(),
-					available_list.end(), node_struct(NULL, ip));
+					available_list.end(), node_struct(NULL, ip, result, false));
 				if (ite == available_list.end())
 				{
-					available_list.push_back(node_struct(new_session, ip));
+					available_list.push_back(node_struct(new_session, ip, result, false));
 					log(("Add leaf node "+ip).c_str());
 					add_log(("Add leaf node "+ip).c_str());
 				}
-// 				boost::thread thr(boost::bind(&node::Distribute,
-// 					this, new_session, ip));
 			}
 			else
 			{
